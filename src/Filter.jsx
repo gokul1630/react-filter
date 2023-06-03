@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 
 const INPUT_FILTER = ['<', '>', '===', '<=', '>=', '0', '1'];
 
@@ -86,7 +86,6 @@ const Filter = (props) => {
         formData: [{}],
         operator: 'OR',
         showFilter: false,
-        isClicked: false,
         x: 0,
     };
 
@@ -97,41 +96,92 @@ const Filter = (props) => {
         if (data?.length) setState({ originalData: data });
     }, []);
 
-    return (
-        <>
-            {originalData?.length > 0 ? (
-                <div className='tw-relative tw-select-none'>
-                    <button
-                        onClick={() => setState({ showFilter: !showFilter })}
-                        className='tw-relative tw-text-gray-500 tw-text-base tw-px-5 tw-py-1 tw-rounded-lg hover:tw-bg-gray-400 p-2 tw-border tw-border-solid tw-border-gray-400'>
-                        Filter
-                    </button>
-                    <div
-                        style={{ left: x }}
-                        className={`${
-                            showFilter ? 'tw-hidden' : ''
-                        } tw-absolute tw-top-[120%] tw-bg-yellow-100 tw-px-4 tw-py-4 tw-rounded-lg tw-shadow-lg`}>
-                        <div
-                            className='tw-h-4 tw-flex tw-items-center tw-gap-2 tw-cursor-pointer tw-w-max tw-ml-2'
-                            onMouseDown={() => {
-                                document.onmousemove = function (event) {
-                                    setState({ x: event.clientX });
-                                };
+    const toggleFilterCard = () => setState({ showFilter: !showFilter });
 
-                                document.onmouseup = function () {
-                                    document.onmousemove = null;
-                                    document.onmouseup = null;
-                                };
-                            }}>
-                            <span className='tw-font-semibold tw-text-xl tw-leading-none'>&#x2261;</span>
-                            <span className='tw-text-sm'>Move</span>
-                        </div>
-                        <ul className='tw-mt-2'>
-                            {formData?.map((_, index) => (
+    const handleOperatordropDown = (event) => setState({ operator: event.target.value });
+
+    const handleAttributeDropDown = (index) => (event) => {
+        const dataArr = [...formData];
+        const property = event.target.value;
+        dataArr[index] = { property, value: null, operator: '' };
+        setState({ formData: dataArr });
+    };
+
+    const handleConditionDropDown = (index) => (event) => {
+        const operator = event.target.value;
+        const dataArr = [...formData];
+        dataArr[index].operator = operator;
+        setState({ formData: dataArr });
+    };
+
+    const handleValueInput = (index, operatorIndex) => (event) => {
+        const dataArr = [...formData];
+        const inputData = event.target.value;
+        const value = INPUT_FILTER.includes(operatorIndex) ? parseInt(inputData) : inputData;
+        dataArr[index].value = value;
+        setState({ formData: dataArr });
+    };
+
+    const handleDeleteQuery = (index) => () => {
+        const dataArr = [...formData];
+        setState({ formData: dataArr?.filter((_, idx) => idx !== index) });
+    };
+
+    const handleAddFilter = () => setState({ formData: [...formData, {}] });
+
+    const handleClearFilter = () => {
+        onApply(originalData);
+        setState({ ...initialState, originalData: state.originalData });
+    };
+
+    const handleApply = () => {
+        const filteredObj = {};
+        formData?.map((obj) => {
+            filteredObj[obj.property] = { value: obj.value, condition: obj.operator };
+        });
+        onApply(filterData(originalData, operator, filteredObj));
+    };
+
+    const handleMoveCard = () => {
+        document.onmousemove = function (event) {
+            setState({ x: event.clientX });
+        };
+        document.onmouseup = function () {
+            document.onmousemove = null;
+            document.onmouseup = null;
+        };
+    };
+
+    return (
+        <div className='tw-relative tw-select-none'>
+            <button
+                onClick={toggleFilterCard}
+                className='tw-relative tw-text-gray-500 tw-text-base tw-px-5 tw-py-1 tw-rounded-lg hover:tw-bg-gray-400 p-2 tw-border tw-border-solid tw-border-gray-400'>
+                Filter
+            </button>
+            {originalData?.length > 0 ? (
+                <div
+                    style={{ left: x }}
+                    className={`${
+                        !showFilter ? 'tw-hidden' : ''
+                    } tw-absolute tw-top-[120%] tw-bg-yellow-100 tw-px-4 tw-py-4 tw-rounded-lg tw-shadow-lg`}>
+                    <div
+                        className='tw-h-4 tw-flex tw-items-center tw-gap-2 tw-cursor-pointer tw-w-max tw-ml-2'
+                        onMouseDown={handleMoveCard}>
+                        <span className='tw-font-semibold tw-text-xl tw-leading-none'>&#x2261;</span>
+                        <span className='tw-text-sm'>Move</span>
+                    </div>
+                    <ul className='tw-mt-2'>
+                        {formData?.map((_, index) => {
+                            const dataFirstIndex = originalData[0];
+                            const operatorIndex = formData[index].operator;
+                            const propertyIndex = formData[index].property;
+
+                            return (
                                 <li
                                     key={index + ' key'}
                                     className={`tw-grid tw-gap-3 tw-pb-2 ${
-                                        formData[0].operator
+                                        operatorIndex
                                             ? 'tw-grid-cols-[4.5rem,12.5rem,12.5rem,12.5rem,1.56rem]'
                                             : 'tw-grid-flow-col'
                                     }`}>
@@ -141,9 +191,7 @@ const Filter = (props) => {
                                         <select
                                             key='operatorOptions'
                                             value={operator}
-                                            onChange={(event) => {
-                                                setState({ operator: event.target.value });
-                                            }}
+                                            onChange={handleOperatordropDown}
                                             className='tw-rounded-lg tw-py-1 tw-px-2 tw-cursor-pointer'>
                                             <option key='and-operator' value='AND'>
                                                 AND
@@ -164,46 +212,36 @@ const Filter = (props) => {
                                         key='attributeOptions'
                                         className='tw-rounded-lg tw-py-1 tw-px-2 tw-cursor-pointer'
                                         defaultValue='attribute'
-                                        onChange={(event) => {
-                                            const data = [...formData];
-                                            data[index] = { property: event.target.value, value: null, operator: '' };
-                                            setState({ formData: data });
-                                        }}>
+                                        onChange={handleAttributeDropDown(index)}>
                                         <option value='attribute' key='item-one-default' disabled>
                                             Attribute
                                         </option>
-                                        {Object.keys(originalData[0])?.map((key, index) => (
+                                        {Object.keys(dataFirstIndex)?.map((key, index) => (
                                             <option value={key} key={key + index}>
                                                 {key}
                                             </option>
                                         ))}
                                     </select>
 
-                                    {formData[index].property ? (
+                                    {propertyIndex ? (
                                         <select
                                             key='operatorOption'
                                             className='tw-rounded-lg tw-py-1 tw-px-2 tw-cursor-pointer'
                                             defaultValue='condition'
-                                            onChange={(event) => {
-                                                const operator = event.target.value;
-                                                const data = [...formData];
-
-                                                data[index].operator = operator;
-                                                setState({ formData: data });
-                                            }}>
+                                            onChange={handleConditionDropDown(index)}>
                                             <option key='item-two-default' value='condition' id='condition' disabled>
                                                 Condition
                                             </option>
-                                            {Object.entries(originalData[0])?.map(([key, value]) => (
+                                            {Object.entries(dataFirstIndex)?.map(([key, value]) => (
                                                 <>
-                                                    {key === formData[index].property && typeof value === 'number'
+                                                    {key === propertyIndex && typeof value === 'number'
                                                         ? NUMERIC_OPERATORS.map((item) => (
                                                               <option value={item.value} key={key + item.value}>
                                                                   {item.name}
                                                               </option>
                                                           ))
                                                         : null}
-                                                    {key === formData[index].property && typeof value === 'string'
+                                                    {key === propertyIndex && typeof value === 'string'
                                                         ? STRING_OPERATORS.map((item) => (
                                                               <option value={item.value} key={key + item.name}>
                                                                   {item.name}
@@ -215,17 +253,10 @@ const Filter = (props) => {
                                         </select>
                                     ) : null}
 
-                                    {formData[index].operator ? (
+                                    {operatorIndex ? (
                                         <input
-                                            type={INPUT_FILTER.includes(formData[index].operator) ? 'number' : 'text'}
-                                            onChange={(event) => {
-                                                const data = [...formData];
-                                                const inputData = event.target.value;
-                                                const value = INPUT_FILTER.includes(formData[index].operator)
-                                                    ? parseInt(inputData)
-                                                    : inputData;
-                                                data[index].value = value;
-                                            }}
+                                            type={INPUT_FILTER.includes(operatorIndex) ? 'number' : 'text'}
+                                            onChange={handleValueInput(index, operatorIndex)}
                                             placeholder='Enter value'
                                             className='tw-rounded-lg tw-py-1 tw-px-2 '
                                         />
@@ -233,54 +264,40 @@ const Filter = (props) => {
 
                                     {![0].includes(index) ? (
                                         <span
-                                            onClick={() => {
-                                                const data = [...formData];
-                                                setState({ formData: data?.filter((_, idx) => idx !== index) });
-                                            }}
+                                            onClick={handleDeleteQuery(index)}
                                             className='tw-text-2xl tw-leading-none tw-cursor-pointer tw-col-start-5 tw-text-red-400 hover:tw-text-red-600 tw-py-1'
                                             title='delete this filter'>
                                             &#8855;
                                         </span>
                                     ) : null}
                                 </li>
-                            ))}
-                        </ul>
+                            );
+                        })}
+                    </ul>
 
-                        {formData[0].operator ? (
-                            <div className='tw-flex tw-gap-2'>
-                                <button
-                                    onClick={() => {
-                                        setState({ formData: [...formData, {}] });
-                                    }}
-                                    className='tw-text-gray-500 tw-text-base tw-px-2 tw-block tw-mt-5 tw-py-1 tw-rounded-lg hover:tw-bg-gray-400 p-2 tw-border tw-border-solid tw-border-gray-400'>
-                                    + Add Filter
-                                </button>
+                    {formData[0].operator ? (
+                        <div className='tw-flex tw-gap-2'>
+                            <button
+                                onClick={handleAddFilter}
+                                className='tw-text-gray-500 tw-text-base tw-px-2 tw-block tw-mt-5 tw-py-1 tw-rounded-lg hover:tw-bg-gray-400 p-2 tw-border tw-border-solid tw-border-gray-400'>
+                                + Add Filter
+                            </button>
 
-                                <button
-                                    onClick={() => {
-                                        onApply(originalData);
-                                        setState(initialState);
-                                    }}
-                                    className='tw-ml-auto tw-text-gray-500 tw-text-base tw-px-2 tw-block tw-mt-5 tw-py-1 tw-rounded-lg hover:tw-bg-gray-400 p-2 tw-border tw-border-solid tw-border-gray-400'>
-                                    CLEAR ALL
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        const filteredObj = {};
-                                        formData?.map((obj) => {
-                                            filteredObj[obj.property] = { value: obj.value, condition: obj.operator };
-                                        });
-                                        onApply(filterData(originalData, operator, filteredObj));
-                                    }}
-                                    className='tw-text-gray-500 tw-text-base tw-px-2 tw-block tw-mt-5 tw-py-1 tw-rounded-lg hover:tw-bg-gray-400 p-2 tw-border tw-border-solid tw-border-gray-400'>
-                                    APPLY
-                                </button>
-                            </div>
-                        ) : null}
-                    </div>
+                            <button
+                                onClick={handleClearFilter}
+                                className='tw-ml-auto tw-text-gray-500 tw-text-base tw-px-2 tw-block tw-mt-5 tw-py-1 tw-rounded-lg hover:tw-bg-gray-400 p-2 tw-border tw-border-solid tw-border-gray-400'>
+                                CLEAR ALL
+                            </button>
+                            <button
+                                onClick={handleApply}
+                                className='tw-text-gray-500 tw-text-base tw-px-2 tw-block tw-mt-5 tw-py-1 tw-rounded-lg hover:tw-bg-gray-400 p-2 tw-border tw-border-solid tw-border-gray-400'>
+                                APPLY
+                            </button>
+                        </div>
+                    ) : null}
                 </div>
             ) : null}
-        </>
+        </div>
     );
 };
 

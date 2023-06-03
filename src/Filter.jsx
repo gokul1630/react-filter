@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 
 const INPUT_FILTER = ['<', '>', '===', '<=', '>=', '0', '1'];
 
@@ -55,6 +55,8 @@ const switchFunction = (condition, key, value) => {
             return key === value;
         case 'empty':
             return key;
+        default:
+            return false;
     }
 };
 
@@ -82,7 +84,6 @@ const Filter = (props) => {
     const { data, onApply } = props;
 
     const initialState = {
-        originalData: [],
         formData: [{}],
         operator: 'OR',
         showFilter: false,
@@ -90,11 +91,7 @@ const Filter = (props) => {
     };
 
     const [state, setState] = React.useReducer((state, action) => ({ ...state, ...action }), initialState);
-    const { formData, operator, showFilter, originalData, x } = state;
-
-    useEffect(() => {
-        if (data?.length) setState({ originalData: data });
-    }, []);
+    const { formData, operator, showFilter, x } = state;
 
     const toggleFilterCard = () => setState({ showFilter: !showFilter });
 
@@ -130,8 +127,8 @@ const Filter = (props) => {
     const handleAddFilter = () => setState({ formData: [...formData, {}] });
 
     const handleClearFilter = () => {
-        onApply(originalData);
-        setState({ ...initialState, originalData: state.originalData });
+        onApply(data);
+        setState(initialState);
     };
 
     const handleApply = () => {
@@ -139,7 +136,7 @@ const Filter = (props) => {
         formData?.map((obj) => {
             filteredObj[obj.property] = { value: obj.value, condition: obj.operator };
         });
-        onApply(filterData(originalData, operator, filteredObj));
+        onApply(filterData(data, operator, filteredObj));
     };
 
     const handleMoveCard = () => {
@@ -156,15 +153,15 @@ const Filter = (props) => {
         <div className='tailwind tw-relative tw-select-none'>
             <button
                 onClick={toggleFilterCard}
-                className='tailwind tw-relative tw-text-gray-500 tw-text-base tw-px-5 tw-py-1 tw-rounded-lg hover:tw-bg-gray-400 p-2 tw-border tw-border-solid tw-border-gray-400 tw-cursor-pointer'>
+                className='tailwind tw-relative tw-text-[#4b0dba] tw-text-base tw-font-semibold tw-px-5 tw-bg-white tw-rounded-lg tw-border tw-border-solid tw-border-[#4b0dba] tw-cursor-pointer tw-h-[31px]'>
                 Filter
             </button>
-            {originalData?.length > 0 ? (
+            {data?.length > 0 ? (
                 <div
                     style={{ left: x }}
                     className={`${
                         !showFilter ? 'tw-hidden' : ''
-                    } tw-absolute tw-top-[120%] tw-bg-yellow-100 tw-px-4 tw-py-4 tw-rounded-lg tw-shadow-lg`}>
+                    } tw-z-20 tw-absolute tw-top-[120%] tw-bg-yellow-100 tw-px-4 tw-py-4 tw-rounded-lg tw-shadow-lg`}>
                     <div
                         className='tailwind tw-h-4 tw-flex tw-items-center tw-gap-2 tw-cursor-pointer tw-w-max tw-ml-2'
                         onMouseDown={handleMoveCard}>
@@ -173,7 +170,7 @@ const Filter = (props) => {
                     </div>
                     <ul className='tailwind tw-mt-2'>
                         {formData?.map((_, index) => {
-                            const dataFirstIndex = originalData[0];
+                            const dataFirstIndex = data[0];
                             const operatorIndex = formData[index].operator;
                             const propertyIndex = formData[index].property;
 
@@ -181,7 +178,7 @@ const Filter = (props) => {
                                 <li
                                     key={index + ' key'}
                                     className={`tw-grid tw-gap-3 tw-pb-2 ${
-                                        operatorIndex
+                                        formData[0].operator
                                             ? 'tw-grid-cols-[4.5rem,12.5rem,12.5rem,12.5rem,1.56rem]'
                                             : 'tw-grid-flow-col'
                                     }`}>

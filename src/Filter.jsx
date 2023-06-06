@@ -19,8 +19,8 @@ const STRING_OPERATORS = [
     { name: 'starts with', value: 'starts' },
     { name: 'ends with', value: 'ends' },
     { name: 'is exactly', value: 'exactly' },
-    { name: 'empty', value: 'empty' },
-    { name: 'not empty', value: 'notEmpty' },
+    { name: 'empty', value: '0' },
+    { name: 'not empty', value: '1' },
 ];
 
 const switchFunction = (condition, key, value) => {
@@ -38,13 +38,11 @@ const switchFunction = (condition, key, value) => {
         case '!==':
             return key !== value;
         case '0':
-            return !key;
+            return !value;
         case '1':
-            return key;
+            return value;
         case 'contains':
             return key.includes(value);
-        case 'notEmpty':
-            return key;
         case 'doesNot':
             return !key.includes(value);
         case 'starts':
@@ -53,8 +51,6 @@ const switchFunction = (condition, key, value) => {
             return key.endsWith(value);
         case 'exactly':
             return key === value;
-        case 'empty':
-            return key;
         default:
             return false;
     }

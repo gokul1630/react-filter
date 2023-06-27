@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 
 const INPUT_FILTER = ['<', '>', '===', '<=', '>=', '0', '1'];
 
@@ -95,19 +95,20 @@ function filterData(data, operator, conditions) {
 }
 
 const Filter = (props) => {
-    const { data, onApply } = props;
+    const { data = [], onApply } = props;
 
     const initialState = {
         formData: [{}],
         operator: 'OR',
         showFilter: false,
-        x: 0,
+        clearFilter: false,
     };
 
     const [state, setState] = React.useReducer((state, action) => ({ ...state, ...action }), initialState);
-    const { formData, operator, showFilter, x } = state;
+    const { formData, operator, showFilter, clearFilter } = state;
+    const filterCardRef = useRef(null);
 
-    const toggleFilterCard = () => setState({ showFilter: !showFilter });
+    const toggleFilterCard = () => setState({ showFilter: !showFilter, clearFilter: false });
 
     const handleOperatordropDown = (event) => setState({ operator: event.target.value });
 
@@ -142,46 +143,35 @@ const Filter = (props) => {
 
     const handleClearFilter = () => {
         onApply(data);
-        setState(initialState);
+        setState({...initialState, clearFilter: true});
     };
 
     const handleApply = () => {
         const filteredObj = {};
-        formData?.map((obj) => {
+        formData?.forEach((obj) => {
             filteredObj[obj.property] = { value: obj.value, condition: obj.operator };
         });
         onApply(filterData(data, operator, filteredObj));
-    };
-
-    const handleMoveCard = () => {
-        document.onmousemove = function (event) {
-            setState({ x: event.clientX });
-        };
-        document.onmouseup = function () {
-            document.onmousemove = null;
-            document.onmouseup = null;
-        };
     };
 
     return (
         <div className='tailwind tw-relative tw-select-none'>
             <button
                 onClick={toggleFilterCard}
-                className='tailwind tw-relative tw-text-[#4b0dba] tw-text-base tw-font-semibold tw-px-5 tw-bg-white tw-rounded-lg tw-border tw-border-solid tw-border-[#4b0dba] tw-cursor-pointer tw-h-[31px]'>
-                Filter
+                className='tailwind tw-flex tw-items-center tw-gap-2 tw-relative tw-h-[31px] tw-text-[#4b0dba] tw-text-base tw-font-semibold tw-px-5 tw-bg-white tw-rounded-lg tw-border tw-border-solid tw-border-[#4b0dba] tw-cursor-pointer'>
+            Filter
             </button>
-            {data?.length > 0 ? (
+            {!clearFilter && data?.length > 0 ? (
                 <div
-                    style={{ left: x }}
+                    ref={filterCardRef}
                     className={`${
                         !showFilter ? 'tw-hidden' : ''
-                    } tw-z-20 tw-absolute tw-top-[120%] tw-bg-yellow-100 tw-px-4 tw-py-4 tw-rounded-lg tw-shadow-lg`}>
-                    <div
-                        className='tailwind tw-h-4 tw-flex tw-items-center tw-gap-2 tw-cursor-pointer tw-w-max tw-ml-2'
-                        onMouseDown={handleMoveCard}>
-                        <span className='tailwind tw-font-semibold tw-text-xl tw-leading-none'>&#x2261;</span>
-                        <span className='tailwind tw-text-sm'>Move</span>
-                    </div>
+                    } tw-z-20 tw-absolute tw-top-[120%] tw-bg-white tw-px-4 tw-py-4 tw-rounded-lg tw-shadow-lg tw-border tw-border-solid tw-border-[#4b0dba]`}>
+                    <span
+                    onClick={toggleFilterCard}
+                        className='tailwind tw-flex tw-justify-end tw-items-center tw-gap-2 tw-cursor-pointer tw-ml-2 tw-pb-2 tw-text-lg tw-leading-none'>
+                        close &#x2716; 
+                    </span>
                     <ul className='tailwind tw-mt-2'>
                         {formData?.map((_, index) => {
                             const dataFirstIndex = data[0];
@@ -203,7 +193,7 @@ const Filter = (props) => {
                                             key='operatorOptions'
                                             value={operator}
                                             onChange={handleOperatordropDown}
-                                            className='tailwind tw-rounded-lg tw-py-1 tw-px-2 tw-cursor-pointer'>
+                                            className='tailwind tw-rounded-lg tw-py-1 tw-px-2 tw-cursor-pointer tw-bg-[#F7F5FC]'>
                                             <option key='and-operator' value='AND'>
                                                 AND
                                             </option>
@@ -221,7 +211,7 @@ const Filter = (props) => {
 
                                     <select
                                         key='attributeOptions'
-                                        className='tailwind tw-rounded-lg tw-py-1 tw-px-2 tw-cursor-pointer'
+                                        className='tailwind tw-rounded-lg tw-py-1 tw-px-2 tw-cursor-pointer tw-bg-[#F7F5FC]'
                                         defaultValue='attribute'
                                         onChange={handleAttributeDropDown(index)}>
                                         <option value='attribute' key='item-one-default' disabled>
@@ -237,7 +227,7 @@ const Filter = (props) => {
                                     {propertyIndex ? (
                                         <select
                                             key='operatorOption'
-                                            className='tailwind tw-rounded-lg tw-py-1 tw-px-2 tw-cursor-pointer'
+                                            className='tailwind tw-rounded-lg tw-py-1 tw-px-2 tw-cursor-pointer tw-bg-[#F7F5FC]'
                                             defaultValue='condition'
                                             onChange={handleConditionDropDown(index)}>
                                             <option key='item-two-default' value='condition' id='condition' disabled>
@@ -269,7 +259,7 @@ const Filter = (props) => {
                                             type={INPUT_FILTER.includes(operatorIndex) ? 'number' : 'text'}
                                             onChange={handleValueInput(index, operatorIndex)}
                                             placeholder='Enter value'
-                                            className='tailwind tw-rounded-lg tw-py-1 tw-px-2 '
+                                            className='tailwind tw-rounded-lg tw-py-1 tw-px-2 tw-bg-[#F7F5FC]'
                                         />
                                     ) : null}
 
@@ -287,21 +277,21 @@ const Filter = (props) => {
                     </ul>
 
                     {formData[0].operator ? (
-                        <div className='tailwind tw-flex tw-gap-2'>
+                        <div className='tailwind tw-flex tw-gap-2 tw-py-1'>
                             <button
                                 onClick={handleAddFilter}
-                                className='tailwind tw-text-gray-500 tw-text-base tw-px-2 tw-block tw-mt-5 tw-py-1 tw-rounded-lg hover:tw-bg-gray-400 p-2 tw-border tw-border-solid tw-border-gray-400'>
+                                className='tailwind tw-h-[31px] tw-text-[#4b0dba] tw-text-base tw-font-semibold tw-px-5 tw-bg-white tw-rounded-lg tw-border tw-border-solid tw-border-[#4b0dba]'>
                                 + Add Filter
                             </button>
 
                             <button
                                 onClick={handleClearFilter}
-                                className='tailwind tw-ml-auto tw-text-gray-500 tw-text-base tw-px-2 tw-block tw-mt-5 tw-py-1 tw-rounded-lg hover:tw-bg-gray-400 p-2 tw-border tw-border-solid tw-border-gray-400'>
+                                className='tailwind tw-ml-auto tw-h-[31px] tw-text-[#4b0dba] tw-text-base tw-font-semibold tw-px-5 tw-bg-white tw-rounded-lg tw-border tw-border-solid tw-border-[#4b0dba]'>
                                 CLEAR ALL
                             </button>
                             <button
                                 onClick={handleApply}
-                                className='tailwind tw-text-gray-500 tw-text-base tw-px-2 tw-block tw-mt-5 tw-py-1 tw-rounded-lg hover:tw-bg-gray-400 p-2 tw-border tw-border-solid tw-border-gray-400'>
+                                className='tailwind tw-h-[31px] tw-text-[#4b0dba] tw-text-base tw-font-semibold tw-px-5 tw-bg-white tw-rounded-lg tw-border tw-border-solid tw-border-[#4b0dba]'>
                                 APPLY
                             </button>
                         </div>

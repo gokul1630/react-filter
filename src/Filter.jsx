@@ -2,6 +2,8 @@ import React from 'react';
 
 const INPUT_FILTER = ['<', '>', '===', '<=', '>=', '0', '1'];
 
+const HIDE_INPUT_FILTER = ['0', '1']
+
 const NUMERIC_OPERATORS = [
     { name: 'less than', value: '<' },
     { name: 'greater than', value: '>' },
@@ -19,11 +21,23 @@ const STRING_OPERATORS = [
     { name: 'starts with', value: 'starts' },
     { name: 'ends with', value: 'ends' },
     { name: 'is exactly', value: 'exactly' },
-    { name: 'empty', value: '0' },
-    { name: 'not empty', value: '1' },
+    { name: 'empty', value: 'empty' },
+    { name: 'not empty', value: 'notEmpty' },
 ];
 
+const stringFunc = (arg = '') => arg.toLowerCase().replace(/\s/gi, '');
+
 const switchFunction = (condition, key, value) => {
+    let filteredKey
+
+    if (typeof key === 'string') {
+        filteredKey = null;
+    } else if (condition === '0' || condition === '1') {
+        filteredKey = key === 0 ? 1 : key;
+    } else {
+        filteredKey = key
+    }
+
     switch (condition) {
         case '<':
             return key < value;
@@ -38,19 +52,23 @@ const switchFunction = (condition, key, value) => {
         case '!==':
             return key !== value;
         case '0':
-            return !value;
+            return !filteredKey;
         case '1':
-            return value;
+            return filteredKey;
+        case 'empty':
+            return !key;
+        case 'notEmpty':
+            return key;
         case 'contains':
-            return key.includes(value);
+            return stringFunc(key).includes(stringFunc(value))
         case 'doesNot':
-            return !key.includes(value);
+            return !stringFunc(key).includes(stringFunc(value));
         case 'starts':
-            return key.startsWith(value);
+            return stringFunc(key).startsWith(stringFunc(value));
         case 'ends':
-            return key.endsWith(value);
+            return stringFunc(key).endsWith(stringFunc(value));
         case 'exactly':
-            return key === value;
+            return key?.replace(/\s/gi,'') === value?.replace(/\s/gi,'');
         default:
             return false;
     }
@@ -246,7 +264,7 @@ const Filter = (props) => {
                                         </select>
                                     ) : null}
 
-                                    {operatorIndex ? (
+                                    {operatorIndex && !HIDE_INPUT_FILTER.includes(operatorIndex) ? (
                                         <input
                                             type={INPUT_FILTER.includes(operatorIndex) ? 'number' : 'text'}
                                             onChange={handleValueInput(index, operatorIndex)}

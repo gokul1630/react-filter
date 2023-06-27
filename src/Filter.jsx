@@ -21,8 +21,8 @@ const STRING_OPERATORS = [
     { name: 'starts with', value: 'starts' },
     { name: 'ends with', value: 'ends' },
     { name: 'is exactly', value: 'exactly' },
-    { name: 'empty', value: 'empty' },
-    { name: 'not empty', value: 'notEmpty' },
+    { name: 'empty', value: '0' },
+    { name: 'not empty', value: '1' },
 ];
 
 const stringFunc = (arg = '') => arg.toLowerCase().replace(/\s/gi, '');

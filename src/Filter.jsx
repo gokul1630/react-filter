@@ -74,24 +74,23 @@ const switchFunction = (condition, key, value) => {
     }
 };
 
-function filterData(data, operator, conditions) {
-    return data.filter((item) => {
-        if (operator === 'AND') {
-            return Object.entries(conditions)?.every(([key, val]) => {
-                const value = val.value;
-                const keyOne = item[key];
-                const condition = val.condition;
-                return switchFunction(condition, keyOne, value);
-            });
-        } else {
-            return Object.entries(conditions)?.some(([key, val]) => {
-                const value = val.value;
-                const keyOne = item[key];
-                const condition = val.condition;
-                return switchFunction(condition, keyOne, value);
-            });
-        }
-    });
+function filterData(data, condition, formData = []) {
+    let filteredANDData = [...data]
+
+    if (condition === 'AND') {
+        formData?.forEach(conditions => {
+            const { operator, value, property } = conditions
+            filteredANDData = filteredANDData?.filter((item) => switchFunction(operator, item[property], value))
+        })
+        return filteredANDData
+    } else {
+        let filteredORData = []
+        formData?.forEach(conditions => {
+            const { operator, value, property } = conditions
+            filteredORData = data?.filter((item) => switchFunction(operator, item[property], value))
+        })
+        return filteredORData
+    }
 }
 
 const Filter = (props) => {
@@ -147,13 +146,8 @@ const Filter = (props) => {
     };
 
     const handleApply = () => {
-        const filteredObj = {};
-        formData?.forEach((obj) => {
-            filteredObj[obj.property] = { value: obj.value, condition: obj.operator };
-        });
-        onApply(filterData(data, operator, filteredObj));
+        onApply(filterData(data, operator, formData));
     };
-
     return (
         <div className='tailwind tw-relative tw-select-none'>
             <button
